@@ -1,1 +1,8 @@
 # send-to-vscode-chrome-ext
+
+1. Able to detect code and fetch the code from github pages and send it to console
+2. Not able to send it to wesocket yet 
+
+Steps to setup this chorom extension 
+clone the repo and go to chrome extensions and select load unpacked extensions and select this repo
+![tfchromeext](https://github.com/user-attachments/assets/5affb35b-36a6-49ee-8a69-b02b5a4cbe0f)

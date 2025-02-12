@@ -6,3 +6,5 @@
 Steps to setup this chorom extension 
 clone the repo and go to chrome extensions and select load unpacked extensions and select this repo
 ![tfchromeext](https://github.com/user-attachments/assets/5affb35b-36a6-49ee-8a69-b02b5a4cbe0f)
+
+![image](https://github.com/user-attachments/assets/ad710064-f3d2-40f7-8252-c14d19f61a81)

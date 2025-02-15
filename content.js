@@ -140,23 +140,73 @@ function waitForElement(selector, timeout = 10000) {
     return await response.text();
   }
   
-  // Insert the rendered markdown below the video (above comments)
   function insertReadmeHtml(html) {
+    // Create the outer container.
     const container = document.createElement('div');
     container.id = 'github-readme-container';
     container.style.border = '1px solid #ccc';
-    container.style.padding = '10px';
-    container.style.margin = '20px 0';
-    container.innerHTML = `<h2>GitHub README</h2><article class="markdown-body">${html}</article>`;
+    container.style.backgroundColor = '#fff';
+    container.style.boxSizing = 'border-box';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.borderRadius = '10px'; // Curved edges for the container
   
-    // Insert before the comments section if it exists
-    const comments = document.querySelector('ytd-comments');
-    if (comments) {
-      comments.parentNode.insertBefore(container, comments);
+    // Create the fixed header.
+    const header = document.createElement('div');
+    header.id = 'readme-header';
+    header.innerText = 'Readme Chrome Extension';
+    header.style.background = 'linear-gradient(135deg, #6a11cb, #2575fc)'; // Gradient background.
+    header.style.color = '#fff';               // White text.
+    header.style.padding = '12px 20px';          // Extra padding.
+    header.style.fontSize = '20px';              // Larger text size.
+    header.style.fontWeight = 'bold';            
+    header.style.textAlign = 'center';           // Center the text.
+    header.style.borderBottom = '2px solid rgba(255, 255, 255, 0.3)';
+    header.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)'; // Subtle drop shadow.
+    header.style.flex = '0 0 auto';
+      // Round the top corners of the header
+  header.style.borderTopLeftRadius = '10px';
+  header.style.borderTopRightRadius = '10px';
+  
+    // Create the content area that will scroll.
+    const contentDiv = document.createElement('div');
+    contentDiv.id = 'readme-content';
+    contentDiv.style.overflowY = 'auto';
+    // This div will take up the remaining space.
+    contentDiv.style.flex = '1 1 auto';
+    
+    // Wrap the markdown content in an article with GitHub markdown styling.
+    const article = document.createElement('article');
+    article.classList.add('markdown-body');
+    article.innerHTML = html;
+    contentDiv.appendChild(article);
+    
+    // Append header and content to the container.
+    container.appendChild(header);
+    container.appendChild(contentDiv);
+    
+    // Set the container's height to match the YouTube video height.
+    let videoContainer = document.querySelector('#player') || document.querySelector('video');
+    if (videoContainer) {
+      const videoHeight = videoContainer.offsetHeight;
+      container.style.height = videoHeight + 'px';
     } else {
-      // Otherwise, append at the end of the main content
-      document.body.appendChild(container);
+      container.style.height = '400px';
     }
+    
+    // Insert the container into the recommendations area.
+    const secondary = document.querySelector('#secondary');
+    if (secondary) {
+      secondary.prepend(container);
+      container.style.width = '100%'; // Use full width of the recommendations column.
+    } else {
+      // Fallback: position fixed at the right side.
+      container.style.position = 'fixed';
+      container.style.top = '50px';
+      container.style.right = '20px';
+      container.style.width = '300px';
+    }
+    
     return container;
   }
   

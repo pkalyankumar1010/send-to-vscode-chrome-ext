@@ -1,0 +1,72 @@
+/* Style for the red dot and execute button */
+.red-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: red;
+    margin-left: 5px;
+    cursor: pointer;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+  }
+  
+  .execute-btn {
+    display: none;
+    position: absolute;
+    top: -5px;
+    right: 20px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    padding: 2px 5px;
+    font-size: 12px;
+    z-index: 1000;
+  }
+  
+  /* Show the button when hovering over the red dot */
+  .red-dot:hover .execute-btn {
+    display: block;
+  }
+  .red-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: red;
+    margin-left: 5px;
+    cursor: pointer;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+  }
+  
+  /* Remove any CSS hover rules for the execute button,
+     as we now control its visibility via JavaScript */
+  .execute-btn {
+    display: none;
+    position: absolute;
+    top: -5px;
+    right: 20px;
+    background-color: #007bff;  /* Primary blue */
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    z-index: 1000;
+  }
+  
+  .execute-btn:hover {
+    background-color: #0056b3;
+    transform: scale(1.05);
+  }
+  
+  .execute-btn:active {
+    transform: scale(0.95);
+  }
+  

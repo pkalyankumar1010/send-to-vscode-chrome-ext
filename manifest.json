@@ -1,29 +1,20 @@
 {
     "manifest_version": 3,
-    "name": "YouTube GitHub README Executor",
+    "name": "Code Executor Extension",
     "version": "1.0",
-    "description": "Shows the GitHub README from a repo link in the video description and enables execution of code blocks via a local WebSocket.",
-    "permissions": [
-      "activeTab",
-      "scripting"
-    ],
-    "host_permissions": [
-      "*://*.github.com/*",
-      "*://raw.githubusercontent.com/*"
-    ],
+    "description": "Opens a WebSocket to localhost and sends code snippets from GitHub pages.",
+    "permissions": ["scripting"],
+    "background": {
+      "service_worker": "background.js"
+    },
     "content_scripts": [
       {
-        "matches": ["*://www.youtube.com/*"],
-        "js": [
-          "libraries/marked.min.js",
-          "content.js"
-        ],
-        "css": [
-          "css/style.css",
-          "css/github-markdown.css"
-        ],
-        "run_at": "document_idle"
+        "matches": ["*://*.github.com/*"],
+        "js": ["content.js"]
       }
-    ]
+    ],
+    "action": {
+      "default_icon": "icons/icon.svg"
+    }
   }
   

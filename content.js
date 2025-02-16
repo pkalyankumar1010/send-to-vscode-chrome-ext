@@ -224,6 +224,7 @@ function sendCode(code) {
   const socket = getOrCreateWebSocket();
   if (socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ type: "execute", content: code }));
+    displayAlert("Code executed successfully!");
   } else {
     // Queue the message to send when the connection opens.
     messageQueue.push(code);

@@ -2,6 +2,54 @@
 let wsConnection = null;
 let messageQueue = [];
 let pingInterval = null;
+
+let autoExecEnabled = false;
+let autoExecCommands = []; // Array of {time: number, code: string, executed: boolean}
+let videoElement = null;
+let videoTimeListener = null;
+
+// ===========================================
+// NEW: Parse auto-execution commands from raw markdown
+// ===========================================
+function parseAutoExecCommands(markdown) {
+  let commands = [];
+  // Regex to capture commands wrapped in the special comments.
+  const regex = /<!--START:PLAYLIVECODE\s+TIME=(\d+)s-->\s*```[a-zA-Z]*\s*([\s\S]*?)\s*```[\s\S]*?<!--END:PLAYLIVECODE-->/g;
+  let match;
+  while ((match = regex.exec(markdown)) !== null) {
+    let time = parseInt(match[1], 10);
+    let code = match[2].trim();
+    commands.push({ time: time, code: code, executed: false });
+  }
+  return commands;
+}
+
+// ===========================================
+// NEW: Functions to enable/disable auto-execution
+// ===========================================
+function enableAutoExec() {
+  videoElement = document.querySelector('video');
+  if (videoElement && !videoTimeListener) {
+    videoTimeListener = function() {
+      const currentTime = videoElement.currentTime;
+      autoExecCommands.forEach(cmd => {
+        if (!cmd.executed && currentTime >= cmd.time) {
+          sendCode(cmd.code);
+          cmd.executed = true;
+        }
+      });
+    };
+    videoElement.addEventListener('timeupdate', videoTimeListener);
+  }
+}
+
+function disableAutoExec() {
+  if (videoElement && videoTimeListener) {
+    videoElement.removeEventListener('timeupdate', videoTimeListener);
+    videoTimeListener = null;
+  }
+}
+
 function displayAlert(message, duration = 2000) {
     const alertDiv = document.createElement('div');
     alertDiv.innerText = message;
@@ -64,7 +112,7 @@ function getOrCreateWebSocket() {
     // Flush any queued messages.
     while (messageQueue.length > 0) {
       const msg = messageQueue.shift();
-      wsConnection.send(JSON.stringify({ type: "execute", content: msg }));
+      wsConnection.send(JSON.stringify({ type: "execCode", content: msg }));
       displayAlert("Code executed successfully!");
     }
   });
@@ -154,7 +202,7 @@ function waitForElement(selector, timeout = 10000) {
     // Create the fixed header.
     const header = document.createElement('div');
     header.id = 'readme-header';
-    header.innerText = 'Readme Chrome Extension';
+    header.innerText = 'Play Live Code';
     header.style.background = 'linear-gradient(135deg, #6a11cb, #2575fc)'; // Gradient background.
     header.style.color = '#fff';               // White text.
     header.style.padding = '12px 20px';          // Extra padding.
@@ -167,6 +215,63 @@ function waitForElement(selector, timeout = 10000) {
       // Round the top corners of the header
   header.style.borderTopLeftRadius = '10px';
   header.style.borderTopRightRadius = '10px';
+  header.style.position = 'relative'; // to position toggle button
+
+    // ===========================================
+  // NEW: Create the toggle button for auto code execution
+  // ===========================================
+  const toggleContainer = document.createElement('div');
+  toggleContainer.style.position = 'absolute';
+  toggleContainer.style.top = '10px';
+  toggleContainer.style.right = '10px';
+  toggleContainer.style.cursor = 'pointer';
+  toggleContainer.title = 'Execute in Sync';
+
+  // Hidden checkbox
+  const toggleInput = document.createElement('input');
+  toggleInput.type = 'checkbox';
+  toggleInput.id = 'autoExecToggle';
+  toggleInput.style.display = 'none';
+
+  // Custom toggle label styling like a day/night switch
+  const toggleLabel = document.createElement('label');
+  toggleLabel.htmlFor = 'autoExecToggle';
+  toggleLabel.style.width = '40px';
+  toggleLabel.style.height = '20px';
+  toggleLabel.style.background = '#ccc';
+  toggleLabel.style.borderRadius = '20px';
+  toggleLabel.style.display = 'inline-block';
+  toggleLabel.style.verticalAlign = 'middle';
+  toggleLabel.style.position = 'relative';
+
+  const toggleCircle = document.createElement('span');
+  toggleCircle.style.position = 'absolute';
+  toggleCircle.style.top = '2px';
+  toggleCircle.style.left = '2px';
+  toggleCircle.style.width = '16px';
+  toggleCircle.style.height = '16px';
+  toggleCircle.style.background = '#fff';
+  toggleCircle.style.borderRadius = '50%';
+  toggleCircle.style.transition = '0.3s';
+
+  toggleLabel.appendChild(toggleCircle);
+  toggleContainer.appendChild(toggleInput);
+  toggleContainer.appendChild(toggleLabel);
+  header.appendChild(toggleContainer);
+
+  // Event listener for toggle changes.
+  toggleInput.addEventListener('change', function() {
+    autoExecEnabled = toggleInput.checked;
+    if (autoExecEnabled) {
+      enableAutoExec();
+      toggleLabel.style.background = '#66bb6a';
+      toggleCircle.style.left = '22px';
+    } else {
+      disableAutoExec();
+      toggleLabel.style.background = '#ccc';
+      toggleCircle.style.left = '2px';
+    }
+  });
   
     // Create the content area that will scroll.
     const contentDiv = document.createElement('div');
@@ -331,6 +436,10 @@ function waitForElement(selector, timeout = 10000) {
           return;
         }
       }
+
+      // NEW: Parse auto code execution commands from raw markdown.
+      autoExecCommands = parseAutoExecCommands(markdownContent);
+      console.log("Auto-exec commands:", autoExecCommands);
     
       // Convert markdown to HTML using marked library (make sure marked is loaded)
       const htmlContent = marked.parse(markdownContent);

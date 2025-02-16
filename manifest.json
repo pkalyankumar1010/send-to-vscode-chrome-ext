@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "YouTube GitHub README Executor",
+    "name": "Play Live Code",
     "version": "1.0",
     "description": "Shows the GitHub README from a repo link in the video description and enables execution of code blocks via a local WebSocket.",
     "permissions": [

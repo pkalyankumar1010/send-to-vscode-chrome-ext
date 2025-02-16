@@ -9,7 +9,47 @@ let videoElement = null;
 let videoTimeListener = null;
 let autoScrollEnabled = false;
 let videoScrollListener = null;
-
+// Global reference for the readme container
+let readmeContainer = null;
+// Helper to reposition the readme container based on the saved position state.
+// Position can be "right" (default) or "bottom" (between video and description).
+function repositionReadmeContainer() {
+  const position = localStorage.getItem('readmePosition') || 'right';
+  
+  if (!readmeContainer) return;
+  
+  // Remove container from its current parent.
+  if (readmeContainer.parentElement) {
+    readmeContainer.parentElement.removeChild(readmeContainer);
+  }
+  
+  if (position === 'bottom') {
+    // Insert below the video and above the description.
+    // Find the description element (using id "description-inline-expander" from your earlier code).
+    // const descriptionElement = document.querySelector('ytd-text-inline-expander#description-inline-expander');
+    const descriptionElement = document.querySelector('div#bottom-row');
+    if (descriptionElement) {
+      descriptionElement.parentNode.insertBefore(readmeContainer, descriptionElement);
+      readmeContainer.style.width = '100%';
+    } else {
+      // Fallback: insert at the end of the primary content.
+      document.querySelector('#primary')?.appendChild(readmeContainer);
+    }
+  } else {
+    // Default: insert into the recommendations area (right side)
+    const secondary = document.querySelector('#secondary');
+    if (secondary) {
+      secondary.prepend(readmeContainer);
+      readmeContainer.style.width = '100%';
+    } else {
+      // Fallback: fixed at right
+      readmeContainer.style.position = 'fixed';
+      readmeContainer.style.top = '50px';
+      readmeContainer.style.right = '20px';
+      readmeContainer.style.width = '300px';
+    }
+  }
+}
 // Functions to enable/disable auto scroll.
 function enableAutoScrollFeature() {
   const video = document.querySelector('video');
@@ -281,6 +321,8 @@ function waitForElement(selector, timeout = 10000) {
     container.style.display = 'flex';
     container.style.flexDirection = 'column';
     container.style.borderRadius = '10px'; // Curved edges for the container
+      // Save container globally so it can be repositioned later.
+  readmeContainer = container;
   
     // Create the fixed header.
     const header = document.createElement('div');
@@ -292,6 +334,11 @@ function waitForElement(selector, timeout = 10000) {
     header.style.fontSize = '20px';              // Larger text size.
     header.style.fontWeight = 'bold';            
     header.style.textAlign = 'center';           // Center the text.
+    if ((localStorage.getItem('readmePosition') || 'right') === 'right') {
+      header.style.textAlign = 'left'; // Extra space for toggles when at right.
+    } else {
+      header.style.textAlign = 'center';
+    }
     header.style.borderBottom = '2px solid rgba(255, 255, 255, 0.3)';
     header.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)'; // Subtle drop shadow.
     header.style.flex = '0 0 auto';
@@ -300,6 +347,72 @@ function waitForElement(selector, timeout = 10000) {
   header.style.borderTopRightRadius = '10px';
   header.style.position = 'relative'; // to position toggle button
 
+    // ------------------------------
+  // NEW: Readme Position Toggle
+  // ------------------------------
+  const positionToggleContainer = document.createElement('div');
+  positionToggleContainer.style.position = 'absolute';
+  positionToggleContainer.style.top = '10px';
+  positionToggleContainer.style.right = '120px'; // Adjust so it doesn't overlap other toggles
+  positionToggleContainer.style.cursor = 'pointer';
+  positionToggleContainer.title = 'Toggle Readme Position';
+
+  const positionToggleInput = document.createElement('input');
+  positionToggleInput.type = 'checkbox';
+  positionToggleInput.id = 'readmePositionToggle';
+  positionToggleInput.style.display = 'none';
+
+  const positionToggleLabel = document.createElement('label');
+  positionToggleLabel.htmlFor = 'readmePositionToggle';
+  positionToggleLabel.style.width = '40px';
+  positionToggleLabel.style.height = '20px';
+  positionToggleLabel.style.background = '#ccc';
+  positionToggleLabel.style.borderRadius = '20px';
+  positionToggleLabel.style.display = 'inline-block';
+  positionToggleLabel.style.verticalAlign = 'middle';
+  positionToggleLabel.style.position = 'relative';
+
+  const positionToggleCircle = document.createElement('span');
+  positionToggleCircle.style.position = 'absolute';
+  positionToggleCircle.style.top = '2px';
+  // Default "right" position: circle left at 2px.
+  positionToggleCircle.style.left = '2px';
+  positionToggleCircle.style.width = '16px';
+  positionToggleCircle.style.height = '16px';
+  positionToggleCircle.style.background = '#fff';
+  positionToggleCircle.style.borderRadius = '50%';
+  positionToggleCircle.style.transition = '0.3s';
+
+  positionToggleLabel.appendChild(positionToggleCircle);
+  positionToggleContainer.appendChild(positionToggleInput);
+  positionToggleContainer.appendChild(positionToggleLabel);
+  header.appendChild(positionToggleContainer);
+  
+    // Initialize the toggle based on localStorage (default "right" if not set).
+    let storedPosition = localStorage.getItem('readmePosition') || 'right';
+    if(storedPosition === 'bottom'){
+      positionToggleInput.checked = true;
+      positionToggleLabel.style.background = '#66bb6a';
+      positionToggleCircle.style.left = '22px';
+    } else {
+      positionToggleInput.checked = false;
+      positionToggleLabel.style.background = '#ccc';
+      positionToggleCircle.style.left = '2px';
+    }
+    
+    // Toggle event listener: update localStorage and reposition the container.
+    positionToggleInput.addEventListener('change', function() {
+      if (positionToggleInput.checked) {
+        localStorage.setItem('readmePosition', 'bottom');
+        positionToggleLabel.style.background = '#66bb6a';
+        positionToggleCircle.style.left = '22px';
+      } else {
+        localStorage.setItem('readmePosition', 'right');
+        positionToggleLabel.style.background = '#ccc';
+        positionToggleCircle.style.left = '2px';
+      }
+      repositionReadmeContainer();
+    });
     // ------------------------------
   // NEW: Auto Scroll Toggle
   // ------------------------------
@@ -462,7 +575,8 @@ autoScrollToggleInput.addEventListener('change', function() {
       container.style.right = '20px';
       container.style.width = '300px';
     }
-    
+     // Insert the container based on the saved position.
+  repositionReadmeContainer(); 
     return container;
   }
   

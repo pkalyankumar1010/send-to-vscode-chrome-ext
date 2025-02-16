@@ -7,7 +7,25 @@ let autoExecEnabled = false;
 let autoExecCommands = []; // Array of {time: number, code: string, executed: boolean}
 let videoElement = null;
 let videoTimeListener = null;
+let autoScrollEnabled = false;
+let videoScrollListener = null;
 
+// Functions to enable/disable auto scroll.
+function enableAutoScrollFeature() {
+  const video = document.querySelector('video');
+  if (video && !videoScrollListener) {
+    videoScrollListener = updateAutoScroll; // use the updateAutoScroll function as the listener
+    video.addEventListener('timeupdate', videoScrollListener);
+  }
+}
+
+function disableAutoScrollFeature() {
+  const video = document.querySelector('video');
+  if (video && videoScrollListener) {
+    video.removeEventListener('timeupdate', videoScrollListener);
+    videoScrollListener = null;
+  }
+}
 // NEW: Convert timestamp (e.g., "0:00" or "01:02:03") to seconds.
 function convertTimestampToSeconds(ts) {
   const parts = ts.split(':').map(Number);
@@ -281,6 +299,72 @@ function waitForElement(selector, timeout = 10000) {
   header.style.borderTopRightRadius = '10px';
   header.style.position = 'relative'; // to position toggle button
 
+    // ------------------------------
+  // NEW: Auto Scroll Toggle
+  // ------------------------------
+  const autoScrollToggleContainer = document.createElement('div');
+  autoScrollToggleContainer.style.position = 'absolute';
+  autoScrollToggleContainer.style.top = '10px';
+  autoScrollToggleContainer.style.right = '60px'; // positioned slightly left of other toggles if any
+  autoScrollToggleContainer.style.cursor = 'pointer';
+  autoScrollToggleContainer.title = 'Auto Scroll';
+
+  const autoScrollToggleInput = document.createElement('input');
+  autoScrollToggleInput.type = 'checkbox';
+  autoScrollToggleInput.id = 'autoScrollToggle';
+  autoScrollToggleInput.style.display = 'none';
+
+  const autoScrollToggleLabel = document.createElement('label');
+  autoScrollToggleLabel.htmlFor = 'autoScrollToggle';
+  autoScrollToggleLabel.style.width = '40px';
+  autoScrollToggleLabel.style.height = '20px';
+  autoScrollToggleLabel.style.background = '#ccc';
+  autoScrollToggleLabel.style.borderRadius = '20px';
+  autoScrollToggleLabel.style.display = 'inline-block';
+  autoScrollToggleLabel.style.verticalAlign = 'middle';
+  autoScrollToggleLabel.style.position = 'relative';
+
+  const autoScrollToggleCircle = document.createElement('span');
+  autoScrollToggleCircle.style.position = 'absolute';
+  autoScrollToggleCircle.style.top = '2px';
+  autoScrollToggleCircle.style.left = '2px';
+  autoScrollToggleCircle.style.width = '16px';
+  autoScrollToggleCircle.style.height = '16px';
+  autoScrollToggleCircle.style.background = '#fff';
+  autoScrollToggleCircle.style.borderRadius = '50%';
+  autoScrollToggleCircle.style.transition = '0.3s';
+
+  autoScrollToggleLabel.appendChild(autoScrollToggleCircle);
+  autoScrollToggleContainer.appendChild(autoScrollToggleInput);
+  autoScrollToggleContainer.appendChild(autoScrollToggleLabel);
+  header.appendChild(autoScrollToggleContainer);
+
+// Initialize Auto Scroll state from localStorage.
+let storedAutoScroll = localStorage.getItem('autoScrollEnabled') === 'true';
+autoScrollToggleInput.checked = storedAutoScroll;
+if(storedAutoScroll){
+  autoScrollToggleLabel.style.background = '#66bb6a';
+  autoScrollToggleCircle.style.left = '22px';
+  enableAutoScrollFeature();
+} else {
+  autoScrollToggleLabel.style.background = '#ccc';
+  autoScrollToggleCircle.style.left = '2px';
+  disableAutoScrollFeature();
+}
+
+autoScrollToggleInput.addEventListener('change', function() {
+  if (autoScrollToggleInput.checked) {
+    localStorage.setItem('autoScrollEnabled', 'true');
+    autoScrollToggleLabel.style.background = '#66bb6a';
+    autoScrollToggleCircle.style.left = '22px';
+    enableAutoScrollFeature();
+  } else {
+    localStorage.setItem('autoScrollEnabled', 'false');
+    autoScrollToggleLabel.style.background = '#ccc';
+    autoScrollToggleCircle.style.left = '2px';
+    disableAutoScrollFeature();
+  }
+});
     // ===========================================
   // NEW: Create the toggle button for auto code execution
   // ===========================================
@@ -336,6 +420,7 @@ function waitForElement(selector, timeout = 10000) {
       toggleCircle.style.left = '2px';
     }
   });
+  
   
     // Create the content area that will scroll.
     const contentDiv = document.createElement('div');

@@ -8,6 +8,70 @@ let autoExecCommands = []; // Array of {time: number, code: string, executed: bo
 let videoElement = null;
 let videoTimeListener = null;
 
+// NEW: Convert timestamp (e.g., "0:00" or "01:02:03") to seconds.
+function convertTimestampToSeconds(ts) {
+  const parts = ts.split(':').map(Number);
+  if (parts.length === 2) {
+    return parts[0] * 60 + parts[1];
+  } else if (parts.length === 3) {
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  }
+  return 0;
+}
+
+// NEW: Transform raw markdown by wrapping scroll sections with a div.
+function transformScrollMarkers(markdown) {
+  // This regex finds blocks starting with the start marker and ending with the end marker.
+  return markdown.replace(
+    /<!--SCROLL_START:TIME_STAMP=([\d:]+)-->([\s\S]*?)<!--SCROLL_END:TIME_STAMP=([\d:]+)-->/g,
+    (match, start, content, end) => {
+      return `<div class="scroll-section" data-start="${start.trim()}" data-end="${end.trim()}">\n${content}\n</div>`;
+    }
+  );
+}
+// NEW: Update auto-scroll based on the current video time.
+function updateAutoScroll() {
+  const video = document.querySelector('video');
+  if (!video) return;
+  const currentTime = video.currentTime;
+  const contentDiv = document.getElementById('readme-content');
+  if (!contentDiv) return;
+
+  // Find the active scroll section
+  const sections = contentDiv.querySelectorAll('.scroll-section');
+  let activeSection = null;
+  for (const section of sections) {
+    const startSec = convertTimestampToSeconds(section.dataset.start);
+    const endSec = convertTimestampToSeconds(section.dataset.end);
+    if (currentTime >= startSec && currentTime <= endSec) {
+      activeSection = section;
+      break;
+    }
+  }
+
+  if (!activeSection) return;
+
+  // Calculate scroll parameters
+  const startSec = convertTimestampToSeconds(activeSection.dataset.start);
+  const endSec = convertTimestampToSeconds(activeSection.dataset.end);
+  const progress = Math.max(0, Math.min(1, (currentTime - startSec) / (endSec - startSec)));
+
+  const sectionTop = activeSection.offsetTop;
+  const sectionHeight = activeSection.offsetHeight;
+  const containerHeight = contentDiv.clientHeight;
+
+  // Calculate scroll range for this section
+  const scrollStart = sectionTop;
+  const scrollEnd = sectionTop + sectionHeight - containerHeight;
+  
+  // Only animate scroll if section is taller than container
+  if (scrollEnd > scrollStart) {
+    const targetScroll = scrollStart + (progress * (scrollEnd - scrollStart));
+    contentDiv.scrollTop = targetScroll;
+  } else {
+    contentDiv.scrollTop = scrollStart;
+  }
+}
 // ===========================================
 // NEW: Parse auto-execution commands from raw markdown
 // ===========================================
@@ -279,6 +343,7 @@ function waitForElement(selector, timeout = 10000) {
     contentDiv.style.overflowY = 'auto';
     // This div will take up the remaining space.
     contentDiv.style.flex = '1 1 auto';
+    contentDiv.style.scrollBehavior = 'smooth';
     
     // Wrap the markdown content in an article with GitHub markdown styling.
     const article = document.createElement('article');
@@ -437,6 +502,8 @@ function waitForElement(selector, timeout = 10000) {
         }
       }
 
+      // NEW: Transform markdown to wrap scroll sections.
+      markdownContent = transformScrollMarkers(markdownContent);
       // NEW: Parse auto code execution commands from raw markdown.
       autoExecCommands = parseAutoExecCommands(markdownContent);
       console.log("Auto-exec commands:", autoExecCommands);
@@ -444,6 +511,14 @@ function waitForElement(selector, timeout = 10000) {
       // Convert markdown to HTML using marked library (make sure marked is loaded)
       const htmlContent = marked.parse(markdownContent);
       const container = insertReadmeHtml(htmlContent);
+          // NEW: Attach a timeupdate listener for auto-scroll if scroll markers exist.
+    const contentDiv = document.getElementById('readme-content');
+    if (contentDiv && contentDiv.querySelector('.scroll-section')) {
+      const videoEl = document.querySelector('video');
+      if (videoEl) {
+        videoEl.addEventListener('timeupdate', updateAutoScroll);
+      }
+    }
       enhanceCodeBlocks(container);
     } catch (error) {
       console.error("Error initializing extension:", error);

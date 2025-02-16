@@ -13,3 +13,4 @@ clone the repo and go to chrome extensions and select load unpacked extensions a
 old
 
 ![tfchromeext](https://github.com/user-attachments/assets/5affb35b-36a6-49ee-8a69-b02b5a4cbe0f)
+# playlivecode-vscode-ext

@@ -160,6 +160,13 @@ function enableAutoExec() {
           cmd.executed = true;
         }
       });
+      // NEW: Process insert commands
+      insertCommands.forEach(cmd => {
+        if (!cmd.executed && currentTime >= cmd.time) {
+          sendInsertCode(cmd);
+          cmd.executed = true;
+        }
+      });
     };
     videoElement.addEventListener('timeupdate', videoTimeListener);
   }
@@ -226,7 +233,7 @@ function getOrCreateWebSocket() {
     if (!pingInterval) {
       pingInterval = setInterval(() => {
         if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
-          wsConnection.send(JSON.stringify({ type: "ping" }));
+          // wsConnection.send(JSON.stringify({ type: "ping" }));
         }
       }, 10000); // ping every 10 seconds
     }
@@ -540,6 +547,7 @@ autoScrollToggleInput.addEventListener('change', function() {
     const contentDiv = document.createElement('div');
     contentDiv.id = 'readme-content';
     contentDiv.style.overflowY = 'auto';
+    contentDiv.style.paddingLeft = '10px';
     // This div will take up the remaining space.
     contentDiv.style.flex = '1 1 auto';
     contentDiv.style.scrollBehavior = 'smooth';
@@ -648,7 +656,44 @@ autoScrollToggleInput.addEventListener('change', function() {
 //         console.error("WebSocket error:", err);
 //       });
 //   }
-  
+  // ===========================================
+// NEW: Parse insert commands from raw markdown
+// ===========================================
+// This function extracts commands with FILEPATH, SEARCHSTRING and TIME.
+function parseInsertCommands(markdown) {
+  let commands = [];
+  const regex = /<!--START:INSERT PLAYLIVECODE\s+FILEPATH='([^']+)'\s+SEARCHSTRING='([^']+)'\s+TIME=(\d+)s-->\s*```[a-zA-Z]*\s*([\s\S]*?)\s*```[\s\S]*?<!--END:INSERT PLAYLIVECODE-->/g;
+  let match;
+  while ((match = regex.exec(markdown)) !== null) {
+    let file = match[1].trim();
+    let searchString = match[2].trim();
+    let time = parseInt(match[3], 10);
+    let code = match[4].trim();
+    commands.push({ file: file, searchString: searchString, time: time, code: code, executed: false });
+  }
+  return commands;
+}
+
+// ===========================================
+// NEW: Function to send insert code command via WebSocket
+// ===========================================
+function sendInsertCode(cmd) {
+  const socket = getOrCreateWebSocket();
+  const message = {
+    type: "insertCode",
+    code: cmd.code,
+    file: cmd.file,
+    searchString: cmd.searchString
+  };
+  if (socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify(message));
+    displayAlert("Insert code executed successfully!");
+  } else {
+    // If socket is not open, queue the message (you might want a separate queue for insert commands)
+    messageQueue.push(JSON.stringify(message));
+  }
+}
+
   // Main function to coordinate everything
   async function init() {
     try {
@@ -707,6 +752,8 @@ autoScrollToggleInput.addEventListener('change', function() {
       // NEW: Parse auto code execution commands from raw markdown.
       autoExecCommands = parseAutoExecCommands(markdownContent);
       console.log("Auto-exec commands:", autoExecCommands);
+      insertCommands = parseInsertCommands(markdownContent);
+      console.log("Insert commands:", insertCommands);
     
       // Convert markdown to HTML using marked library (make sure marked is loaded)
       const htmlContent = marked.parse(markdownContent);
